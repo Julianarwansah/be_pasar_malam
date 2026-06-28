@@ -16,9 +16,6 @@ services:
       FIREBASE_API_KEY: "${FIREBASE_API_KEY}"
     volumes:
       - ../be_dompet_digital/firebase_service_account.json:/app/firebase_service_account.json:ro
-    depends_on:
-      mysql:
-        condition: service_healthy
     networks:
       - emoney-net
 
