@@ -271,6 +271,10 @@ docker compose down
 
 ---
 
+## Demo Video
+
+📺 [YouTube — APP Dompet Digital & APP Pasar Malam](https://youtu.be/FbgJiSlCbQc?si=o25bBbH71duQvz4X)
+
 ## Proyek Terkait
 
 | Proyek | Link | Hubungan |
