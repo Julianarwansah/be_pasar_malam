@@ -273,8 +273,8 @@ docker compose down
 
 ## Proyek Terkait
 
-| Folder | Hubungan |
-|--------|----------|
-| [📂 `pasar_malam`](../pasar_malam) | Flutter app (frontend) yang pakai backend ini |
-| [📂 `be_dompet_digital`](../be_dompet_digital) | Backend dompet digital — user bisa bayar pakai saldo dari sana |
-| [📂 `dompet_digital`](../dompet_digital) | Flutter app e-money — sumber saldo buat transaksi di marketplace ini |
+| Proyek | Link | Hubungan |
+|--------|------|----------|
+| `apk_pasar_malam_conect_dompet_digital` | [GitHub](https://github.com/Julianarwansah/apk_pasar_malam_conect_dompet_digital.git) | Flutter app (frontend) yang pakai backend ini |
+| `BE_Dompet_digital` | [GitHub](https://github.com/Julianarwansah/BE_Dompet_digital.git) | Backend dompet digital — user bisa bayar pakai saldo dari sana |
+| `Dompet_digital` | [GitHub](https://github.com/Julianarwansah/Dompet_digital.git) | Flutter app e-money — sumber saldo buat transaksi di marketplace ini |
