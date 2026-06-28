@@ -1,14 +1,18 @@
 # BE Pasar Malam
 
-Backend API untuk aplikasi Pasar Malam — marketplace jajanan pasar malam. User bisa browsing produk, masukin ke keranjang, checkout, dan bayar. Dibangun pakai Go, Gin framework, MySQL, dan Firebase Auth.
+Backend API untuk aplikasi **Pasar Malam** — marketplace jajanan pasar malam. User bisa browsing produk, masukin ke keranjang, checkout, dan bayar. Dibangun pakai Go, Gin framework, MySQL, dan Firebase Auth.
+
+> **Status:** UAS Mobile Lanjutan — Backend service untuk Flutter app [`pasar_malam`](../pasar_malam).
+
+---
 
 ## Fitur
 
 ### Autentikasi
 - Login lewat Firebase Auth (Google Sign-In atau email/password)
-- Verifikasi token Firebase ke backend
+- Verifikasi token Firebase → backend generate JWT
 - JWT buat autentikasi endpoint yang butuh login
-- Verifikasi email (dev mode ada endpoint khusus buat skip verifikasi)
+- Dev mode: endpoint khusus buat skip verifikasi email (`ENABLE_DEV_AUTH=true`)
 
 ### Produk
 - List semua produk (bisa filter kategori)
@@ -28,6 +32,86 @@ Backend API untuk aplikasi Pasar Malam — marketplace jajanan pasar malam. User
 - Detail pesanan berdasarkan ID
 - Support beberapa metode pembayaran (VA number, GoPay deeplink)
 
+---
+
+## Database Schema
+
+Backend ini menggunakan **6 tabel** (auto-migrate oleh GORM):
+
+### `users`
+| Kolom | Tipe | Keterangan |
+|-------|------|------------|
+| id | uint (PK) | Auto increment |
+| firebase_uid | string(191) | Unique, dari Firebase Auth |
+| email | string(191) | Unique |
+| name | string(191) | Nama user |
+| role | string(32) | Default: `customer` |
+| email_verified | bool | Status verifikasi email |
+| fcm_token | text | Firebase Cloud Messaging token |
+| created_at | datetime | Waktu dibuat |
+| updated_at | datetime | Waktu update terakhir |
+
+### `products`
+| Kolom | Tipe | Keterangan |
+|-------|------|------------|
+| id | uint (PK) | Auto increment |
+| name | string(191) | Nama produk |
+| description | text | Deskripsi produk |
+| price | decimal(12,2) | Harga dalam Rupiah |
+| stock | int | Stok tersedia |
+| category | string(64) | Kategori: Makanan, Minuman, Snack |
+| image_url | string(512) | URL gambar produk |
+| is_active | bool | Default: `true` |
+| created_at | datetime | Waktu dibuat |
+| updated_at | datetime | Waktu update terakhir |
+
+### `carts`
+| Kolom | Tipe | Keterangan |
+|-------|------|------------|
+| id | uint (PK) | Auto increment |
+| user_id | uint | Unique index, 1 user = 1 cart |
+| created_at | datetime | Waktu dibuat |
+| updated_at | datetime | Waktu update terakhir |
+
+### `cart_items`
+| Kolom | Tipe | Keterangan |
+|-------|------|------------|
+| id | uint (PK) | Auto increment |
+| cart_id | uint | Index, foreign key ke carts |
+| product_id | uint | Foreign key ke products |
+| quantity | int | Jumlah item |
+| subtotal | decimal(12,2) | price × quantity |
+| created_at | datetime | Waktu dibuat |
+| updated_at | datetime | Waktu update terakhir |
+
+### `orders`
+| Kolom | Tipe | Keterangan |
+|-------|------|------------|
+| id | uint (PK) | Auto increment |
+| user_id | uint | Index |
+| total_amount | decimal(12,2) | Total belanja |
+| status | string(32) | Default: `pending` |
+| shipping_address | text | Alamat pengiriman |
+| notes | text | Catatan pesanan |
+| payment_method | string(32) | Metode bayar (va/gopay) |
+| va_number | string(64) | Virtual account number |
+| gopay_deeplink | string(512) | Deep link GoPay |
+| created_at | datetime | Waktu dibuat |
+| updated_at | datetime | Waktu update terakhir |
+
+### `order_items`
+| Kolom | Tipe | Keterangan |
+|-------|------|------------|
+| id | uint (PK) | Auto increment |
+| order_id | uint | Index, foreign key ke orders |
+| product_id | uint | ID produk saat checkout |
+| product_name | string(191) | Nama produk (snapshot) |
+| price | decimal(12,2) | Harga saat checkout (snapshot) |
+| quantity | int | Jumlah item |
+| subtotal | decimal(12,2) | price × quantity |
+
+---
+
 ## Struktur Project
 
 ```
@@ -35,8 +119,7 @@ be_pasar_malam/
 ├── config/           # Konfigurasi dari .env
 │   └── config.go
 ├── database/         # Koneksi MySQL & Firebase
-│   ├── mysql.go
-│   └── firebase.go   (via config)
+│   └── mysql.go
 ├── handlers/         # Handler HTTP (controller)
 │   ├── auth.go       # Login, verifikasi token
 │   ├── products.go   # List & detail produk
@@ -60,11 +143,13 @@ be_pasar_malam/
 │   ├── jwt.go
 │   └── firebase_auth.go
 ├── main.go           # Entry point
-├── go.mod
+├── .env.example
 ├── Dockerfile
 ├── docker-compose.yml
-└── .env.example
+└── go.mod
 ```
+
+---
 
 ## Tech Stack
 
@@ -77,18 +162,20 @@ be_pasar_malam/
 | Autentikasi | Firebase Auth + JWT |
 | Container | Docker + Docker Compose |
 
+---
+
 ## API Endpoints
 
 ### Public
 | Method | Endpoint | Keterangan |
 |--------|----------|------------|
 | GET | `/v1/health` | Cek server hidup |
-| POST | `/v1/auth/verify-token` | Verifikasi token Firebase |
-| POST | `/v1/auth/dev-verify-email` | Verifikasi email (dev only) |
+| POST | `/v1/auth/verify-token` | Verifikasi token Firebase → return JWT |
+| POST | `/v1/auth/dev-verify-email` | Verifikasi email (hanya kalau `ENABLE_DEV_AUTH=true`) |
 | GET | `/v1/products` | List semua produk |
 | GET | `/v1/products/:id` | Detail produk |
 
-### Butuh Login (JWT)
+### Butuh Login (Bearer JWT)
 | Method | Endpoint | Keterangan |
 |--------|----------|------------|
 | GET | `/v1/auth/me` | Info user yang sedang login |
@@ -102,15 +189,19 @@ be_pasar_malam/
 | POST | `/v1/orders/checkout` | Checkout keranjang |
 | GET | `/v1/orders/:id` | Detail pesanan |
 
+---
+
 ## Data Seed (Produk Awal)
 
-Saat pertama kali server jalan, otomatis di-seed 12 produk:
+Saat pertama kali server jalan, otomatis di-seed **12 produk**:
 
-**Makanan:** Sate Ayam Madura, Bakso Urat, Bakso Bakar, Soto Ayam Kampung, Nasi Goreng Spesial, Mie Ayam Bakso
+| Kategori | Produk |
+|----------|--------|
+| Makanan | Sate Ayam Madura, Bakso Urat, Bakso Bakar, Soto Ayam Kampung, Nasi Goreng Spesial, Mie Ayam Bakso |
+| Minuman | Es Teh Manis, Es Jeruk Peras, Bajigur, Bandrek |
+| Snack | Pisang Goreng, Tahu Bulat |
 
-**Minuman:** Es Teh Manis, Es Jeruk Peras, Bajigur, Bandrek
-
-**Snack:** Pisang Goreng, Tahu Bulat
+---
 
 ## Cara Menjalankan
 
@@ -121,9 +212,7 @@ Buat file `.env` dari contoh:
 cp .env.example .env
 ```
 
-Isi konfigurasi di `.env` sesuai kebutuhan.
-
-Pastikan `firebase_service_account.json` ada. Backend ini share Firebase project yang sama dengan BE Dompet Digital.
+Isi konfigurasi di `.env` sesuai kebutuhan. Pastikan `firebase_service_account.json` ada — backend ini share Firebase project yang sama dengan `be_dompet_digital`.
 
 ### 2. Jalankan dengan Docker
 
@@ -131,7 +220,7 @@ Pastikan `firebase_service_account.json` ada. Backend ini share Firebase project
 docker compose up --build
 ```
 
-API jalan di port `8082`. Backend ini pakai network yang sama dengan `be_dompet_digital` supaya bisa share MySQL.
+API jalan di port **8082**. Backend ini pakai network yang sama dengan `be_dompet_digital` (`emoney-net`) supaya bisa share MySQL.
 
 ### 3. Jalankan manual
 
@@ -151,6 +240,8 @@ curl http://localhost:8082/v1/health
 docker compose down
 ```
 
+---
+
 ## Koneksi dari Flutter
 
 | Device | URL |
@@ -159,13 +250,7 @@ docker compose down
 | HP fisik | `http://<IP_LAPTOP>:8082` |
 | iOS simulator | `http://localhost:8082` |
 
-## Proyek Terkait
-
-| Folder | Hubungan |
-|--------|----------|
-| [📂 `pasar_malam`](../pasar_malam) | Flutter app (frontend) yang pakai backend ini |
-| [📂 `be_dompet_digital`](../be_dompet_digital) | Backend dompet digital — user bisa bayar pakai saldo dari sana |
-| [📂 `dompet_digital`](../dompet_digital) | Flutter app e-money — sumber saldo buat transaksi di marketplace ini |
+---
 
 ## Environment Variables
 
@@ -177,8 +262,18 @@ docker compose down
 | `DB_USER` | `useremoney` | User MySQL |
 | `DB_PASSWORD` | `Password#123` | Password MySQL |
 | `DB_NAME` | `pasarmalam` | Nama database |
-| `JWT_SECRET` | - | Secret key buat JWT |
+| `JWT_SECRET` | `pasarmalam-super-secret-jwt-key` | Secret key buat JWT |
 | `JWT_EXPIRY_HOURS` | `168` | Masa berlaku JWT (7 hari) |
 | `FIREBASE_CREDENTIALS_PATH` | `firebase_service_account.json` | Path service account |
 | `FIREBASE_API_KEY` | - | Firebase Web API Key |
-# be_pasar_malam
+| `ENABLE_DEV_AUTH` | `false` | Aktifkan dev auth endpoint |
+
+---
+
+## Proyek Terkait
+
+| Folder | Hubungan |
+|--------|----------|
+| [📂 `pasar_malam`](../pasar_malam) | Flutter app (frontend) yang pakai backend ini |
+| [📂 `be_dompet_digital`](../be_dompet_digital) | Backend dompet digital — user bisa bayar pakai saldo dari sana |
+| [📂 `dompet_digital`](../dompet_digital) | Flutter app e-money — sumber saldo buat transaksi di marketplace ini |
