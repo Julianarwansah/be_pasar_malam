@@ -1,0 +1,28 @@
+services:
+  api-pasar:
+    build: .
+    ports:
+      - "8082:8082"
+    environment:
+      PORT: 8082
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: "${DB_USER:-useremoney}"
+      DB_PASSWORD: "${DB_PASSWORD:-Password#123}"
+      DB_NAME: pasarmalam
+      JWT_SECRET: "${PASAR_JWT_SECRET:-pasarmalam-super-secret-jwt-key}"
+      JWT_EXPIRY_HOURS: "168"
+      FIREBASE_CREDENTIALS_PATH: /app/firebase_service_account.json
+      FIREBASE_API_KEY: "${FIREBASE_API_KEY}"
+    volumes:
+      - ../be_dompet_digital/firebase_service_account.json:/app/firebase_service_account.json:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - emoney-net
+
+networks:
+  emoney-net:
+    external: true
+    name: be_dompet_digital_default
